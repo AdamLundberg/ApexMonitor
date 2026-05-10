@@ -1,0 +1,25 @@
+{
+  "name": "apex-oled-monitor",
+  "version": "1.0.0",
+  "description": "SteelSeries Apex Pro OLED system monitor \u2014 CPU, GPU, RAM",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "systeminformation": "^5.31.6",
+    "systray2": "^2.1.4"
+  },
+  "bin": "index.js",
+  "pkg": {
+    "targets": [
+      "node18-win-x64"
+    ],
+    "outputPath": "dist",
+    "assets": [
+      "config.json",
+      "icon.ico",
+      "node_modules/systray2/traybin/tray_windows_release.exe"
+    ]
+  }
+}
