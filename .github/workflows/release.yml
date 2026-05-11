@@ -5,6 +5,9 @@ on:
     tags:
       - "v*"   # triggers on tags like v1.0.0, v1.2.3
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest   # must be Windows for --no-console to work correctly
@@ -28,11 +31,22 @@ jobs:
         run: pkg . --no-console --output dist/apex-monitor.exe
 
       - name: Copy support files
+        shell: pwsh
         run: |
-          copy config.json dist\config.json
-          copy start-silent.vbs dist\start-silent.vbs
-          copy setup-autostart.bat dist\setup-autostart.bat
-          copy README-friend.md dist\README.md
+          $files = @{
+            "config.json"        = "dist/config.json"
+            "start-silent.vbs"   = "dist/start-silent.vbs"
+            "setup-autostart.bat"= "dist/setup-autostart.bat"
+            "README-friend.md"   = "dist/README.md"
+          }
+          foreach ($src in $files.Keys) {
+            if (Test-Path $src) {
+              Copy-Item $src $files[$src]
+              Write-Host "Copied $src"
+            } else {
+              Write-Host "Skipped $src (not found)"
+            }
+          }
 
       - name: Zip release
         run: Compress-Archive -Path dist\* -DestinationPath apex-monitor-${{ github.ref_name }}.zip
