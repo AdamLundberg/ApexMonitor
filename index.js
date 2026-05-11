@@ -22,8 +22,14 @@ const EVENTS = {
   RAM: { name: "RAM_STATS", icon: 29 },
 };
 
+// ─── Runtime directory ───────────────────────────────────────────────────────
+// When running as a pkg exe, __dirname is a virtual path inside the bundle.
+// Files that need to persist on disk (config, flags) must live next to the exe.
+const isPkg       = typeof process.pkg !== "undefined";
+const RUNTIME_DIR = isPkg ? path.dirname(process.execPath) : __dirname;
+
 // ─── User config (config.json) ────────────────────────────────────────────────
-const CONFIG_PATH    = path.join(__dirname, "config.json");
+const CONFIG_PATH    = path.join(RUNTIME_DIR, "config.json");
 const DEFAULT_CONFIG = {
   // How long each screen (CPU / GPU / RAM) is shown in milliseconds
   updateIntervalMs: 2000,
@@ -91,30 +97,13 @@ function makeHandlers(iconId) {
   }));
 }
 
-// On first run: bind handlers with defaults so they show up in GG UI.
-// On subsequent runs: only register (no handlers) so user customizations in GG are preserved.
-const FIRST_RUN_FLAG = path.join(__dirname, ".initialized");
-
 async function bindAllHandlers(address) {
-  const isFirstRun = !fs.existsSync(FIRST_RUN_FLAG);
-
-  if (isFirstRun) {
-    for (const [, ev] of Object.entries(EVENTS)) {
-      await post(address, "bind_game_event", {
-        game: GAME_NAME, event: ev.name,
-        min_value: 0, max_value: 100, icon_id: ev.icon, value_optional: true,
-        handlers: makeHandlers(ev.icon),
-      });
-    }
-    fs.writeFileSync(FIRST_RUN_FLAG, new Date().toISOString());
-    console.log("✓ First run: default handlers bound. You can now customize devices in SteelSeries GG.");
-  } else {
-    for (const [, ev] of Object.entries(EVENTS)) {
-      await post(address, "register_game_event", {
-        game: GAME_NAME, event: ev.name,
-        min_value: 0, max_value: 100, icon_id: ev.icon, value_optional: true,
-      });
-    }
+  for (const [, ev] of Object.entries(EVENTS)) {
+    await post(address, "bind_game_event", {
+      game: GAME_NAME, event: ev.name,
+      min_value: 0, max_value: 100, icon_id: ev.icon, value_optional: true,
+      handlers: makeHandlers(ev.icon),
+    });
   }
 }
 
@@ -219,7 +208,7 @@ function startTray(onQuit) {
   try { SysTray = require("systray2").default; } catch { return; }
 
   // Icon path: look next to the exe (pkg sets __dirname to exe location)
-  const iconPath = path.join(__dirname, "icon.ico");
+  const iconPath = path.join(RUNTIME_DIR, "icon.ico");
   if (!fs.existsSync(iconPath)) {
     // Silently skip tray if icon missing — app still runs fine
     return;
@@ -233,11 +222,6 @@ function startTray(onQuit) {
     click: () => { tray.kill(false); onQuit(); },
   };
 
-  // When running as a pkg exe:  process.execPath = the .exe itself  → use its folder
-  // When running via node.js:    process.execPath = node.exe         → use __dirname (project folder)
-  const isPkg = typeof process.pkg !== "undefined";
-  const trayDir = isPkg ? path.dirname(process.execPath) : __dirname;
-
   const tray = new SysTray({
     menu: {
       icon: iconPath,
@@ -250,7 +234,7 @@ function startTray(onQuit) {
       ],
     },
     debug: false,
-    copyDir: trayDir,
+    copyDir: RUNTIME_DIR,
   });
 
   tray.onClick(action => {

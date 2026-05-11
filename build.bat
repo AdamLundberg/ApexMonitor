@@ -31,8 +31,10 @@ if %errorlevel% neq 0 ( echo [ERROR] Build failed. & pause & exit /b 1 )
 echo.
 echo [4/4] Copying support files...
 copy /y config.json dist\config.json >nul
-copy /y README-friend.md dist\README.md >nul
+copy /y icon.ico dist\icon.ico >nul
 copy /y start-silent.vbs dist\start-silent.vbs >nul
+copy /y setup-autostart.bat dist\setup-autostart.bat >nul
+copy /y README-friend.md dist\README.md >nul
 
 echo.
 echo =========================================

@@ -17,8 +17,6 @@
     ],
     "outputPath": "dist",
     "assets": [
-      "config.json",
-      "icon.ico",
       "node_modules/systray2/traybin/tray_windows_release.exe"
     ]
   }

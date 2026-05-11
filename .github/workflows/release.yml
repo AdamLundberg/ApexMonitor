@@ -33,19 +33,22 @@ jobs:
       - name: Copy support files
         shell: pwsh
         run: |
-          $files = @{
-            "config.json"        = "dist/config.json"
-            "start-silent.vbs"   = "dist/start-silent.vbs"
-            "setup-autostart.bat"= "dist/setup-autostart.bat"
-            "README-friend.md"   = "dist/README.md"
-          }
-          foreach ($src in $files.Keys) {
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          # Required files — build fails if missing
+          $required = @("config.json", "icon.ico", "start-silent.vbs", "setup-autostart.bat")
+          foreach ($src in $required) {
             if (Test-Path $src) {
-              Copy-Item $src $files[$src]
+              Copy-Item $src "dist/$src"
               Write-Host "Copied $src"
             } else {
-              Write-Host "Skipped $src (not found)"
+              Write-Error "$src not found in repo — make sure it is committed"
+              exit 1
             }
+          }
+          # Optional files
+          if (Test-Path "README-friend.md") {
+            Copy-Item "README-friend.md" "dist/README.md"
+            Write-Host "Copied README-friend.md -> README.md"
           }
 
       - name: Zip release
