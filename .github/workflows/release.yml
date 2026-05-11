@@ -46,9 +46,9 @@ jobs:
             }
           }
           # Optional files
-          if (Test-Path "README-friend.md") {
-            Copy-Item "README-friend.md" "dist/README.md"
-            Write-Host "Copied README-friend.md -> README.md"
+          if (Test-Path "README.md") {
+            Copy-Item "README.md" "dist/README.md"
+            Write-Host "Copied README.md"
           }
 
       - name: Zip release
