@@ -27,13 +27,6 @@ const CONFIG_PATH    = path.join(__dirname, "config.json");
 const DEFAULT_CONFIG = {
   // How long each screen (CPU / GPU / RAM) is shown in milliseconds
   updateIntervalMs: 2000,
-  // Which screen device types to show stats on.
-  // Remove entries you don't want. Available options:
-  //   "screened"         - generic (catches Arctis Pro Wireless dock, Rival 700, GameDAC)
-  //   "screened-128x40"  - Apex Pro Gen 1 & Gen 2, Apex 7
-  //   "screened-128x48"  - some older Apex variants
-  //   "screened-128x52"  - Apex Pro Gen 3+
-  devices: ["screened", "screened-128x40", "screened-128x48", "screened-128x52"],
 };
 
 function loadConfig() {
@@ -88,8 +81,8 @@ async function registerApp(address) {
   await post(address, "game_metadata", { game: GAME_NAME, game_display_name: "System Monitor", developer: "Custom" });
 }
 
-function makeHandlers(iconId, devices) {
-  return devices.map(dt => ({
+function makeHandlers(iconId) {
+  return ["screened", "screened-128x40", "screened-128x48", "screened-128x52"].map(dt => ({
     "device-type": dt, zone: "one", mode: "screen",
     datas: [{ "icon-id": iconId, lines: [
       { "has-text": true, "context-frame-key": "value" },
@@ -102,23 +95,20 @@ function makeHandlers(iconId, devices) {
 // On subsequent runs: only register (no handlers) so user customizations in GG are preserved.
 const FIRST_RUN_FLAG = path.join(__dirname, ".initialized");
 
-async function bindAllHandlers(address, devices) {
+async function bindAllHandlers(address) {
   const isFirstRun = !fs.existsSync(FIRST_RUN_FLAG);
 
   if (isFirstRun) {
-    // First run: bind with default handlers so GG knows which devices to use
     for (const [, ev] of Object.entries(EVENTS)) {
       await post(address, "bind_game_event", {
         game: GAME_NAME, event: ev.name,
         min_value: 0, max_value: 100, icon_id: ev.icon, value_optional: true,
-        handlers: makeHandlers(ev.icon, devices),
+        handlers: makeHandlers(ev.icon),
       });
     }
-    // Mark as initialized so future runs don't overwrite user's GG settings
     fs.writeFileSync(FIRST_RUN_FLAG, new Date().toISOString());
     console.log("✓ First run: default handlers bound. You can now customize devices in SteelSeries GG.");
   } else {
-    // Subsequent runs: just register the events, preserving user's GG customizations
     for (const [, ev] of Object.entries(EVENTS)) {
       await post(address, "register_game_event", {
         game: GAME_NAME, event: ev.name,
@@ -286,7 +276,7 @@ async function main() {
 
   try {
     await registerApp(address);
-    await bindAllHandlers(address, config.devices);
+    await bindAllHandlers(address);
   } catch {
     setTimeout(main, 10000);
     return;
