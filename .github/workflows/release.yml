@@ -1,0 +1,63 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - "v*"   # triggers on tags like v1.0.0, v1.2.3
+
+jobs:
+  build:
+    runs-on: windows-latest   # must be Windows for --no-console to work correctly
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install pkg
+        run: npm install -g pkg
+
+      - name: Build exe
+        run: pkg . --no-console --output dist/apex-monitor.exe
+
+      - name: Copy support files
+        run: |
+          copy config.json dist\config.json
+          copy start-silent.vbs dist\start-silent.vbs
+          copy setup-autostart.bat dist\setup-autostart.bat
+          copy README-friend.md dist\README.md
+
+      - name: Zip release
+        run: Compress-Archive -Path dist\* -DestinationPath apex-monitor-${{ github.ref_name }}.zip
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Apex Monitor ${{ github.ref_name }}
+          body: |
+            ## Apex Pro OLED System Monitor ${{ github.ref_name }}
+
+            ### Installation
+            1. Download `apex-monitor-${{ github.ref_name }}.zip`
+            2. Extract it anywhere
+            3. Run `setup-autostart.bat` once to set up silent auto-start on login
+            4. Done — check your system tray
+
+            ### Requirements
+            - SteelSeries GG must be running
+            - No Node.js required
+
+            ### CPU Temperature (AMD Ryzen)
+            For AMD CPU temps, run LibreHardwareMonitor with its web server enabled:
+            Options → Remote Web Server → Run (port 8085)
+
+            ### Config
+            Edit `config.json` to change the screen update speed.
+          files: apex-monitor-${{ github.ref_name }}.zip
